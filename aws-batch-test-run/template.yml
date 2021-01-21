@@ -1,0 +1,139 @@
+Parameters:
+  Subnet:
+    Type: 'AWS::EC2::Subnet::Id'
+    Default: subnet-b64c73d1
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup::Id'
+    Default: sg-c08c6593
+    Description: Using the default security group of the vpc
+  AppId:
+    Type: String
+    Default: '4444'
+  Portfolio:
+    Type: String
+    Default: 'Project'
+  Project:
+    Type: String
+    Default: 'MVP'
+Resources:
+  BatchServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: batch.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole'
+  IamInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Roles:
+        - !Ref EcsInstanceRole
+  EcsInstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2008-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - >-
+          arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+  JobDefinition:
+    Type: 'AWS::Batch::JobDefinition'
+    Properties:
+      Type: container
+      ContainerProperties:
+        Image: !Join
+          - ''
+          - - !Ref 'AWS::AccountId'
+            - '.dkr.ecr.'
+            - !Ref 'AWS::Region'
+            - '.amazonaws.com/awsbatch/test-run:latest'
+        Vcpus: 2
+        Memory: 2000
+        Command:
+          - echo
+          - Hello world
+      JobDefinitionName: !Join
+        - '-'
+        - - !Ref AppId
+          - !Ref Portfolio
+          - !Ref Project
+          - !Select
+            - 2
+            - !Split
+              - /
+              - !Ref 'AWS::StackId'
+          - JobDefinition
+      RetryStrategy:
+        Attempts: 1
+      Tags:
+        AppId: !Ref AppId
+  JobQueue:
+    Type: 'AWS::Batch::JobQueue'
+    Properties:
+      Priority: 1
+      ComputeEnvironmentOrder:
+        - Order: 1
+          ComputeEnvironment: !Ref ComputeEnvironment
+      JobQueueName: !Join
+        - '-'
+        - - !Ref AppId
+          - !Ref Portfolio
+          - !Ref Project
+          - !Select
+            - 2
+            - !Split
+              - /
+              - !Ref 'AWS::StackId'
+          - JobQueue
+      Tags:
+        AppId: !Ref AppId
+  ComputeEnvironment:
+    Type: 'AWS::Batch::ComputeEnvironment'
+    Properties:
+      Type: MANAGED
+      ComputeEnvironmentName: !Join
+        - '-'
+        - - !Ref AppId
+          - !Ref Portfolio
+          - !Ref Project
+          - !Select
+            - 2
+            - !Split
+              - /
+              - !Ref 'AWS::StackId'
+          - ComputeEnvironment
+      ComputeResources:
+        Type: EC2
+        MinvCpus: 0
+        DesiredvCpus: 0
+        MaxvCpus: 64
+        InstanceTypes:
+          - optimal
+        Subnets:
+          - !Ref Subnet
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+        InstanceRole: !Ref IamInstanceProfile
+        Tags:
+          AppId: !Ref AppId
+      ServiceRole: !Ref BatchServiceRole
+      Tags:
+        AppId: !Ref AppId
+Outputs:
+  ComputeEnvironmentArn:
+    Value: !Ref ComputeEnvironment
+  JobQueueArn:
+    Value: !Ref JobQueue
+  JobDefinitionArn:
+    Value: !Ref JobDefinition

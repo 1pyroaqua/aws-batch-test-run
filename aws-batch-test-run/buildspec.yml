@@ -1,0 +1,28 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - pip3 install --disable-pip-version-check -U aws-sam-cli
+      - cd aws-batch-test-run
+  pre_build:
+    commands:
+      - sam validate
+  build:
+    commands:
+      - sam build
+      - sh ./build_and_push.sh awsbatch/test-run
+  post_build:
+    commands:
+      - sam package --output-template-file packaged.yml --s3-bucket ${ARTIFACT_BUCKET} --s3-prefix 'aws-batch-test-run/' --kms-key-id ${CODEBUILD_KMS_KEY_ID}
+
+artifacts:
+  base-directory: aws-batch-test-run
+  files:
+    - packaged.yml
+
+cache:
+  paths:
+    - "/root/.cache/pip/**/*
