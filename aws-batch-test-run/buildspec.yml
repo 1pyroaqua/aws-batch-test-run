@@ -16,6 +16,7 @@ phases:
       # - sh ./build_and_push.sh awsbatch/test-run
   post_build:
     commands:
+      - echo ${ARTIFACT_BUCKET}
       - sam package --output-template-file packaged.yml --s3-bucket ${ARTIFACT_BUCKET} --s3-prefix 'aws-batch-test-run/test/' --kms-key-id ${CODEBUILD_KMS_KEY_ID}
 
 artifacts:
