@@ -1,10 +1,10 @@
 Parameters:
   Subnet:
     Type: 'AWS::EC2::Subnet::Id'
-    Default: subnet-b64c73d1
+    Default: subnet-xxxxxxxx
   SecurityGroup:
     Type: 'AWS::EC2::SecurityGroup::Id'
-    Default: sg-c08c6593
+    Default: sg-xxxxxxxx
     Description: Using the default security group of the vpc
   AppId:
     Type: String
